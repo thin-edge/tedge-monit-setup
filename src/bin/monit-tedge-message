@@ -1,0 +1,26 @@
+#!/bin/sh
+set -e
+
+if [ $# -ne 2 ]; then
+    echo "Invalid command. The script requires exactly 2 positional arguments." >&2
+    exit 1
+fi
+
+if [ -z "$MONIT_EVENT" ]; then
+    echo "env variable 'MONIT_EVENT' is blank. Are you sure you are calling this from monit?" >&2
+    exit 1
+fi
+
+channel="${1:-event}"
+subtype="${2:-monit}"
+
+case "$channel" in
+    alarm) channel_topic="a"; ;;
+    event) channel_topic="e"; ;;
+    *)     channel_topic="e"; ;;
+esac
+
+TOPIC_ROOT=$(tedge config get mqtt.topic_root)
+TOPIC_ID=$(tedge config get mqtt.device_topic_id)
+message=$(printf '{"text":"%s","host":"%s"}' "$MONIT_EVENT. $MONIT_DESCRIPTION" "${MONIT_HOST:-unset}" )
+tedge mqtt pub -q 1 "$TOPIC_ROOT/$TOPIC_ID/$channel_topic/$subtype" "$message"

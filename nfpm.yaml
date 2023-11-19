@@ -1,0 +1,56 @@
+# yaml-language-server: $schema=https://nfpm.goreleaser.com/static/schema.json
+---
+name: tedge-monit-setup
+arch: all
+platform: linux
+version: ${SEMVER}
+section: misc
+priority: optional
+maintainer: Community <community@thin-edge.io>
+description: thin-edge.io monit setup
+vendor: thin-edge.io
+homepage: https://github.com/thin-edge/tedge-monit-setup
+license: Apache License 2.0
+apk:
+  # Use noarch instead of "all"
+  arch: noarch
+contents:
+  - src: ./src/conf.d/*.conf
+    dst: /etc/monit/conf.d/
+    type: config
+    file_info:
+      mode: 0644
+      group: tedge
+      owner: tedge
+
+  - src: ./src/bin/monit-tedge-event
+    dst: /usr/bin/
+    file_info:
+      mode: 0755
+      group: root
+      owner: root
+
+overrides:
+  apk:
+    depends:
+      - tedge
+      - monit
+    scripts:
+      postinstall: src/packaging/postinstall
+      postremove: src/packaging/postremove
+
+  rpm:
+    depends:
+      - tedge
+      - monit
+    scripts:
+      postinstall: src/packaging/postinstall
+      postremove: src/packaging/postremove
+
+  deb:
+    depends:
+      - tedge
+      - monit
+    scripts:
+      postinstall: src/packaging/postinstall
+      postremove: src/packaging/postremove

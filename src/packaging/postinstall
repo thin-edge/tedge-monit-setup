@@ -1,0 +1,30 @@
+#!/bin/sh
+set -e
+
+do_systemd() {
+    if [ -d /run/systemd/system ]; then
+        systemctl --system daemon-reload >/dev/null ||:
+    fi
+
+    # monit
+    systemctl unmask monit ||:
+    systemctl preset monit ||:
+    systemctl enable monit ||:
+
+    if [ -d /run/systemd/system ]; then
+        systemctl restart monit ||:
+    fi
+}
+
+do_initd() {
+    if command -V chkconfig >/dev/null 2>&1; then
+        chkconfig --add monit ||:
+    fi
+    service monit restart ||:
+}
+
+if command -V systemctl >/dev/null 2>&1; then
+    do_systemd
+else
+    do_initd
+fi
