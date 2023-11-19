@@ -23,7 +23,7 @@ contents:
       group: tedge
       owner: tedge
 
-  - src: ./src/bin/monit-tedge-event
+  - src: ./src/bin/monit-tedge-message
     dst: /usr/bin/
     file_info:
       mode: 0755
