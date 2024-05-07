@@ -15,25 +15,26 @@ The following thin-edge.io customization is included in the plugin.
 
 **Monit http web interface (http://localhost:2812)**
 
-By default the web interface will be enabled, however it will only be accessible from on the device itself (as it will block any connection attempts from other devices for security reasons). To view it locally on your machine you will have to so port forwarding using ssh. If you are using Cumulocity IoT then you can also ssh via the cloud using the help of the [cumulocity-remote-access-local-proxy](https://github.com/SoftwareAG/cumulocity-remote-access-local-proxy):
+By default the web interface will be enabled, however it will only be accessible from on the device itself (as it will block any connection attempts from other devices for security reasons).
 
-Below details how to connect via ssh to setup port forwarding so you can access the web interface more easily:
+The monit UI can be accessed using the [cumulocity-remote-access-cloud-http-proxy](https://github.com/SoftwareAG/cumulocity-remote-access-cloud-http-proxy) extensions (UI and microservice) which enables you to access the monit web interface directly from the Cumulocity IoT Device Management UI by using the Cumulocity Cloud Remote Access Passthrough feature.
 
-1. Connect to the device using ssh and setup the port forward (`localhost:2812` on the device to port `2812` on your machine)
+Below shows an example of the monit web interface access from Cumulocity IoT.
 
-    For example below is connecting to a device `rpi4-d83add4931b5.local` using the `pi` user.
+![preview](./images/c8y-monit-preview.png)
 
-    ```
-    ssh pi@rpi4-d83add4931b5.local -L 2812:localhost:2812
-    ```
 
-2. On your local machine, open http://localhost:2812 in your web browser
+After installing the [cumulocity-remote-access-cloud-http-proxy](https://github.com/SoftwareAG/cumulocity-remote-access-cloud-http-proxy) UI plugin and microservice, the web interface can be accessed by creating a Remote Access Passthrough configuration with the following configuration:
 
-    |User|Password|
-    |-|-|
-    |admin|monit|
+|Configuration|Value|
+|----|----|
+|name|http:monit|
+|type|PASSTHROUGH|
+|host|127.0.0.1|
+|port|2812|
 
-    Note: You will only be able to access the port as long as your ssh connection is active.
+**Note:** You may have to refresh the page before the "monit" tab will appear.
+
 
 **Technical summary**
 
