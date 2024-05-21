@@ -16,6 +16,15 @@ do_systemd() {
     fi
 }
 
+# In Yocto, monit looks at the /etc/monit.d/ directory
+# instead of /etc/monit/conf.d/, so let's add the other directory to as well (for normalization)
+if [ -f /etc/monitrc ]; then
+    if ! grep -q "include /etc/monit/conf.d/\*" /etc/monitrc; then
+        echo "Adding /etc/monit/conf.d/ to the monit config (/etc/monitrc)" >&2
+        echo 'include /etc/monit/conf.d/*' >> /etc/monitrc
+    fi
+fi
+
 do_initd() {
     if command -V chkconfig >/dev/null 2>&1; then
         chkconfig --add monit ||:
