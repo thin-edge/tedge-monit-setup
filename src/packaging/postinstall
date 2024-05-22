@@ -21,7 +21,7 @@ do_systemd() {
 if [ -f /etc/monitrc ]; then
     if ! grep -q "include /etc/monit/conf.d/\*" /etc/monitrc; then
         echo "Adding /etc/monit/conf.d/ to the monit config (/etc/monitrc)" >&2
-        echo 'include /etc/monit/conf.d/*' >> /etc/monitrc
+        echo 'include /etc/monit/conf.d/*.conf' >> /etc/monitrc
     fi
 fi
 
