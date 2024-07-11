@@ -3,11 +3,7 @@ Resource    ./resources/common.robot
 Library    Cumulocity
 Library    DeviceLibrary    bootstrap_script=bootstrap.sh
 
-Suite Setup    Suite Setup
-
-*** Variables ***
-
-&{DOCKER_CONFIG}    image=%{IMAGE= }
+Test Setup    Test Setup
 
 *** Test Cases ***
 
@@ -19,6 +15,7 @@ Reconnect on cloud connection loss (by stopping mosquitto)
 
     # Simulate an error by stopping mosquitto
     Execute Command    sudo systemctl stop mosquitto
+    Execute Command    sudo systemctl stop tedge-mapper-c8y
     Sleep    2s    reason=Wait for mosquitto service to be shutdown
     Execute Command    tedge connect c8y --test    timeout=120
     Execute Command    systemctl is-active mosquitto
@@ -27,8 +24,8 @@ Reconnect on cloud connection loss (by stopping mosquitto)
 
 *** Keywords ***
 
-Suite Setup
-    ${DEVICE_SN}=    DeviceLibrary.Setup
+Test Setup
+    ${DEVICE_SN}=    Setup
     Set Suite Variable    $DEVICE_SN
 
 Decrease monit intervals
