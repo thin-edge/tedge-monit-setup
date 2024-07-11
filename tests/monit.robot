@@ -20,6 +20,8 @@ Reconnect on cloud connection loss (by stopping mosquitto)
     Execute Command    tedge connect c8y --test    timeout=120
     Execute Command    systemctl is-active mosquitto
     Execute Command    systemctl is-active tedge-mapper-c8y
+    Cumulocity.Device Should Exist    ${DEVICE_SN}
+    Cumulocity.Device Should Have Event/s    expected_text=.*Reestablished cloud connection: c8y.*    type=tedge-mapper-c8y_reconnected
 
 
 *** Keywords ***
