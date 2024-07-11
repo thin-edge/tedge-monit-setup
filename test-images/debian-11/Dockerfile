@@ -9,6 +9,7 @@ RUN apt-get -y update \
     sudo \
     apt-transport-https \
     ca-certificates \
+    ssh \
     systemd \
     dbus \
     systemd-sysv
