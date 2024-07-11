@@ -1,9 +1,13 @@
 *** Settings ***
 Resource    ./resources/common.robot
 Library    Cumulocity
-Library    DeviceLibrary    image=tedge-monit-setup-debian-11    bootstrap_script=bootstrap.sh
+Library    DeviceLibrary    bootstrap_script=bootstrap.sh
 
 Suite Setup    Suite Setup
+
+*** Variables ***
+
+&{DOCKER_CONFIG}    image=%{IMAGE= }
 
 *** Test Cases ***
 

@@ -1,3 +1,9 @@
+set positional-arguments
+set dotenv-load
+
+IMAGE := env_var_or_default("IMAGE", "debian-11")
+IMAGE_SRC := env_var_or_default("IMAGE_SRC", "debian-11")
+
 build *ARGS:
     ./ci/build.sh {{ARGS}}
 
@@ -14,4 +20,4 @@ test *args='':
   ./.venv/bin/python3 -m robot.run --outputdir output {{args}} tests
 
 build-test:
-  docker build -t tedge-monit-setup-debian-11 -f ./test-images/debian-11/Dockerfile .
+  docker build -t {{IMAGE}} -f ./test-images/{{IMAGE_SRC}}/Dockerfile .
