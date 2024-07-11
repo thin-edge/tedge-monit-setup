@@ -15,6 +15,7 @@ Reconnect on cloud connection loss (by stopping mosquitto)
 
     # Simulate an error by stopping mosquitto
     Execute Command    sudo systemctl stop mosquitto
+    Execute Command    sudo systemctl stop tedge-mapper-c8y
     Sleep    2s    reason=Wait for mosquitto service to be shutdown
     Execute Command    tedge connect c8y --test    timeout=120
     Execute Command    systemctl is-active mosquitto
