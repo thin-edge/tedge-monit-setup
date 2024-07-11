@@ -96,7 +96,7 @@ jobs:
 
       - name: Send report to commit
         if: ${{ always() && github.event_name == 'pull_request_target' }}
-        uses: joonvena/robotframework-reporter-action@v2.4
+        uses: "joonvena/robotframework-reporter-action@v2.5"
         with:
           report_path: output
           gh_access_token: ${{ secrets.GITHUB_TOKEN }}
