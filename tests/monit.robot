@@ -3,7 +3,7 @@ Resource    ./resources/common.robot
 Library    Cumulocity
 Library    DeviceLibrary    bootstrap_script=bootstrap.sh
 
-Suite Setup    Suite Setup
+Test Setup    Test Setup
 
 *** Test Cases ***
 
@@ -23,8 +23,8 @@ Reconnect on cloud connection loss (by stopping mosquitto)
 
 *** Keywords ***
 
-Suite Setup
-    ${DEVICE_SN}=    DeviceLibrary.Setup
+Test Setup
+    ${DEVICE_SN}=    Setup
     Set Suite Variable    $DEVICE_SN
 
 Decrease monit intervals
