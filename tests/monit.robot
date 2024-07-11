@@ -5,10 +5,6 @@ Library    DeviceLibrary    bootstrap_script=bootstrap.sh
 
 Suite Setup    Suite Setup
 
-*** Variables ***
-
-&{DOCKER_CONFIG}    image=%{IMAGE= }
-
 *** Test Cases ***
 
 monit configuration is valid
