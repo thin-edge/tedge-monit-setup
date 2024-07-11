@@ -1,0 +1,2 @@
+# Where to write the log files to
+#LOG_DIR=/var/log/tedge-monit-setup

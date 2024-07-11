@@ -23,7 +23,22 @@ contents:
       group: tedge
       owner: tedge
 
+  - src: ./src/tedge-monit-setup/env
+    dst: /etc/tedge-monit-setup/env
+    type: config|noreplace
+    file_info:
+      mode: 0644
+      group: root
+      owner: root
+
   - src: ./src/bin/monit-tedge-message
+    dst: /usr/bin/
+    file_info:
+      mode: 0755
+      group: root
+      owner: root
+
+  - src: ./src/bin/tedge-fix
     dst: /usr/bin/
     file_info:
       mode: 0755

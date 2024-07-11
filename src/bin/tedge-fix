@@ -1,0 +1,123 @@
+#!/bin/sh
+set -e
+
+help() {
+    cat << EOT
+Collect debug information and repair the given cloud connection
+
+$0 <c8y|aws|az>
+
+EXAMPLE
+
+    $0 c8y
+    # Repair the Cumulocity IoT cloud connection (and collect debug information)
+
+EOT
+}
+
+log() { echo "$@" >&2; }
+
+CLOUD=
+LOG_DIR=/var/log/tedge-monit-setup
+
+# Only read the file if it has the correct permissions, to prevent people from editing it
+# and side-loading functions
+SETTINGS_FILE=/etc/tedge-monit-setup/env
+FOUND_FILE=
+if [ -f "$SETTINGS_FILE" ]; then
+    FOUND_FILE=$(find "$SETTINGS_FILE" -perm 644 | head -n 1)
+fi
+
+if [ -n "$FOUND_FILE" ]; then
+    log "Loading setting file: $SETTINGS_FILE"
+    # shellcheck disable=SC1091,SC1090
+    . "$SETTINGS_FILE"
+fi
+
+#
+# Parse arguments
+#
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help)
+            help
+            exit 0
+            ;;
+        --log-dir)
+            LOG_DIR="$2"
+            shift
+            ;;
+        --*|-*)
+            log "Unknown flag. $1"
+            help
+            exit 1
+            ;;
+        *)
+            if [ -z "$CLOUD" ]; then
+                CLOUD="$1"
+            fi
+            ;;
+    esac
+    shift
+done
+
+if [ -z "$CLOUD" ]; then
+    log "Cloud setting is empty"
+    help
+    exit 1
+fi
+
+pre_log_collection() {
+    #
+    # Collect logs before the corrective action has been executed
+    #
+    mkdir -p "$LOG_DIR" ||:
+
+    journalctl -u "tedge-mapper-$CLOUD" -n 100 > "$LOG_DIR/tedge-mapper-$CLOUD.log" ||:
+    journalctl -u tedge-agent -n 100 > "$LOG_DIR/tedge-agent.log" ||:
+
+    tedge config list > "$LOG_DIR/tedge-config-list.txt"
+
+    if [ -f /etc/tedge/.tedge-mapper-c8y/entity_store.jsonl ]; then
+        cp /etc/tedge/.tedge-mapper-c8y/entity_store.jsonl "$LOG_DIR/" ||:
+    fi
+
+    if [ -f /var/log/mosquitto/mosquitto.log ]; then
+        tail -n 100 /var/log/mosquitto/mosquitto.log > "$LOG_DIR/mosquitto.log" ||:
+    fi
+
+    monit summary > "$LOG_DIR/monit.summary.txt" ||:
+    monit status > "$LOG_DIR/monit.status.txt" ||:
+}
+
+post_log_collection() {
+    #
+    # Collect logs after the corrective action has been executed
+    #
+    mkdir -p "$LOG_DIR" ||:
+
+    if command -V timeout >/dev/null 2>&1; then
+        timeout 5 tedge mqtt sub '#' > "$LOG_DIR/mqtt.txt" ||:
+    fi
+}
+
+# Collect logs
+if ! pre_log_collection; then
+    log "Warning: Unkown error whilst collecting pre debug information"
+fi
+
+# Perform corrective action to try to reestablish the cloud connection
+tedge reconnect "$CLOUD"
+
+# send event so it is easier to query the cloud to find devices where a problem occurred
+if ! MONIT_DESCRIPTION="Reestablished cloud connection: $CLOUD" /usr/bin/monit-tedge-message event "tedge-mapper-${CLOUD}_reconnected"; then
+    log "Warning: Could not publish reconnected event"
+fi
+
+# Collect logs after the connection has hopefully been repaired
+if ! post_log_collection; then
+    log "Warning: Unknown error whilst collecting post debug information"
+fi
+
+# TODO: Create a tarball of the entire folder
+# TODO: Check if log rotation is needed
