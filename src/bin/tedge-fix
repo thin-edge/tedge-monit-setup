@@ -67,39 +67,62 @@ if [ -z "$CLOUD" ]; then
     exit 1
 fi
 
+remove_old_files() {
+    cd "$LOG_DIR"
+
+    MAX_FILES=${MAX_FILES:-10}
+    if [ "$MAX_FILES" -gt 0 ]; then
+    #     ls -t "$LOG_DIR"/*.tar.gz | tail +6 | xargs rm
+        find "$LOG_DIR" -name "tedge-debug-*.tar.gz" | tail +"$MAX_FILES" | xargs rm
+    fi
+
+    # Only keep files newer than x days (protect against an empty log dir)
+    MAX_DAYS="${MAX_DAYS:-30}"
+    if [ "$MAX_DAYS" -gt 0 ] && [ -n "$LOG_DIR" ]; then
+        find "$LOG_DIR" -name "tedge-debug-*.tar.gz" -mtime "$MAX_DAYS" -exec rm -f {} \; ||:
+    fi
+}
+
 pre_log_collection() {
     #
     # Collect logs before the corrective action has been executed
     #
-    mkdir -p "$LOG_DIR" ||:
+    mkdir -p "$LOGD" ||:
 
-    journalctl -u "tedge-mapper-$CLOUD" -n 100 > "$LOG_DIR/tedge-mapper-$CLOUD.log" ||:
-    journalctl -u tedge-agent -n 100 > "$LOG_DIR/tedge-agent.log" ||:
+    journalctl -u "tedge-mapper-$CLOUD" -n 100 > "$LOGD/tedge-mapper-$CLOUD.log" ||:
+    journalctl -u tedge-agent -n 100 > "$LOGD/tedge-agent.log" ||:
 
-    tedge config list > "$LOG_DIR/tedge-config-list.txt"
+    tedge config list > "$LOGD/tedge-config-list.txt"
 
     if [ -f /etc/tedge/.tedge-mapper-c8y/entity_store.jsonl ]; then
-        cp /etc/tedge/.tedge-mapper-c8y/entity_store.jsonl "$LOG_DIR/" ||:
+        cp /etc/tedge/.tedge-mapper-c8y/entity_store.jsonl "$LOGD/" ||:
     fi
 
     if [ -f /var/log/mosquitto/mosquitto.log ]; then
-        tail -n 100 /var/log/mosquitto/mosquitto.log > "$LOG_DIR/mosquitto.log" ||:
+        tail -n 100 /var/log/mosquitto/mosquitto.log > "$LOGD/mosquitto.log" ||:
     fi
 
-    monit summary > "$LOG_DIR/monit.summary.txt" ||:
-    monit status > "$LOG_DIR/monit.status.txt" ||:
+    monit summary > "$LOGD/monit.summary.txt" ||:
+    monit status > "$LOGD/monit.status.txt" ||:
 }
 
 post_log_collection() {
     #
     # Collect logs after the corrective action has been executed
     #
-    mkdir -p "$LOG_DIR" ||:
+    mkdir -p "$LOGD" ||:
 
     if command -V timeout >/dev/null 2>&1; then
-        timeout 5 tedge mqtt sub '#' > "$LOG_DIR/mqtt.txt" ||:
+        timeout 5 tedge mqtt sub '#' > "$LOGD/mqtt.txt" ||:
     fi
 }
+
+LOGD="$LOG_DIR/tmp"
+log "Logging files to $LOGD"
+
+if ! remove_old_files; then
+    log "Unexpected error whilst cleaning up old log files"
+fi
 
 # Collect logs
 if ! pre_log_collection; then
@@ -110,7 +133,7 @@ fi
 tedge reconnect "$CLOUD"
 
 # send event so it is easier to query the cloud to find devices where a problem occurred
-if ! MONIT_DESCRIPTION="Reestablished cloud connection: $CLOUD" /usr/bin/monit-tedge-message event "tedge-mapper-${CLOUD}_reconnected"; then
+if ! MONIT_EVENT="Reconnected to cloud ($CLOUD)" MONIT_DESCRIPTION="A monit rule was able to reconnect to the cloud. Check the $LOG_DIR directory for files" /usr/bin/monit-tedge-message event "tedge-mapper-${CLOUD}_reconnected"; then
     log "Warning: Could not publish reconnected event"
 fi
 
@@ -119,5 +142,7 @@ if ! post_log_collection; then
     log "Warning: Unknown error whilst collecting post debug information"
 fi
 
-# TODO: Create a tarball of the entire folder
-# TODO: Check if log rotation is needed
+# Compress archive
+LOG_ARCHIVE="$(date +"tedge-debug-${CLOUD}_%Y%m%d_%H%M.tar.gz")"
+cd "$LOGD" && tar czf "$LOG_DIR/$LOG_ARCHIVE" .
+rm -rf "$LOGD"

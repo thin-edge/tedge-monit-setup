@@ -1,2 +1,8 @@
 # Where to write the log files to
 #LOG_DIR=/var/log/tedge-monit-setup
+
+# Maximum number of days to keep log (tar.gz) files
+#MAX_DAYS=30
+
+# Maximum number of log (tar.gz) files to keep
+#MAX_FILES=10
