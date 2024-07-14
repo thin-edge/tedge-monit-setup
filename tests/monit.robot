@@ -23,6 +23,7 @@ Reconnect on cloud connection loss (by stopping mosquitto)
     Cumulocity.Device Should Exist    ${DEVICE_SN}
     Cumulocity.Device Should Have Event/s    expected_text=.*Reconnected to cloud .*c8y.*    type=c8y_reconnected
     Assert File Count    /var/log/tedge-monit-setup/*.tar.gz    1
+    Assert File Count    /var/log/tedge-monit-setup/*.log    1
 
 
 *** Keywords ***

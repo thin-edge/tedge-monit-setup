@@ -158,6 +158,12 @@ if ! post_log_collection; then
 fi
 
 # Compress archive
-LOG_ARCHIVE="$(date +"tedge-debug-${CLOUD}_%Y%m%d_%H%M.tar.gz")"
-cd "$LOGD" && tar czf "$LOG_DIR/$LOG_ARCHIVE" .
+LOG_NAME="$(date +"tedge-debug-${CLOUD}_%Y%m%d_%H%M")"
+cd "$LOGD" && tar czf "$LOG_DIR/${LOG_NAME}.tar.gz" .
+
+# Also create a concatenated log file so it can be retrieved via the log_upload operation
+if command -V zcat >/dev/null 2>&1; then
+    zcat "$LOG_DIR/${LOG_NAME}.tar.gz" > "$LOG_DIR/${LOG_NAME}.log"
+fi
+
 rm -rf "$LOGD"
