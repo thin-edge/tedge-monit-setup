@@ -117,6 +117,23 @@ post_log_collection() {
     fi
 }
 
+publish_event() {
+    attempt=0
+    code=1
+    while [ "$attempt" -lt 5 ]; do
+        if MONIT_EVENT="Reconnected to cloud ($CLOUD)" MONIT_DESCRIPTION="A monit rule was able to reconnect to the cloud. Check the $LOG_DIR directory for files" /usr/bin/monit-tedge-message event "${CLOUD}_reconnected"; then
+            code=0
+            break
+        fi
+        attempt=$((attempt + 1))
+        sleep 5
+    done
+    if [ "$code" != 0 ]; then
+        log "Warning: Could not publish reconnected event"
+    fi
+    return "$code"
+}
+
 LOGD="$LOG_DIR/tmp"
 log "Logging files to $LOGD"
 
@@ -133,9 +150,7 @@ fi
 tedge reconnect "$CLOUD"
 
 # send event so it is easier to query the cloud to find devices where a problem occurred
-if ! MONIT_EVENT="Reconnected to cloud ($CLOUD)" MONIT_DESCRIPTION="A monit rule was able to reconnect to the cloud. Check the $LOG_DIR directory for files" /usr/bin/monit-tedge-message event "tedge-mapper-${CLOUD}_reconnected"; then
-    log "Warning: Could not publish reconnected event"
-fi
+publish_event ||:
 
 # Collect logs after the connection has hopefully been repaired
 if ! post_log_collection; then
