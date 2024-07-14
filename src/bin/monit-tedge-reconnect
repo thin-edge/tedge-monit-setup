@@ -1,0 +1,169 @@
+#!/bin/sh
+set -e
+
+help() {
+    cat << EOT
+Collect debug information and repair the given cloud connection
+
+$0 <c8y|aws|az>
+
+EXAMPLE
+
+    $0 c8y
+    # Repair the Cumulocity IoT cloud connection (and collect debug information)
+
+EOT
+}
+
+log() { echo "$@" >&2; }
+
+CLOUD=
+LOG_DIR=/var/log/tedge-monit-setup
+
+# Only read the file if it has the correct permissions, to prevent people from editing it
+# and side-loading functions
+SETTINGS_FILE=/etc/tedge-monit-setup/env
+FOUND_FILE=
+if [ -f "$SETTINGS_FILE" ]; then
+    FOUND_FILE=$(find "$SETTINGS_FILE" -perm 644 | head -n 1)
+fi
+
+if [ -n "$FOUND_FILE" ]; then
+    log "Loading setting file: $SETTINGS_FILE"
+    # shellcheck disable=SC1091,SC1090
+    . "$SETTINGS_FILE"
+fi
+
+#
+# Parse arguments
+#
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -h|--help)
+            help
+            exit 0
+            ;;
+        --log-dir)
+            LOG_DIR="$2"
+            shift
+            ;;
+        --*|-*)
+            log "Unknown flag. $1"
+            help
+            exit 1
+            ;;
+        *)
+            if [ -z "$CLOUD" ]; then
+                CLOUD="$1"
+            fi
+            ;;
+    esac
+    shift
+done
+
+if [ -z "$CLOUD" ]; then
+    log "Cloud setting is empty"
+    help
+    exit 1
+fi
+
+remove_old_files() {
+    cd "$LOG_DIR"
+
+    MAX_FILES=${MAX_FILES:-10}
+    if [ "$MAX_FILES" -gt 0 ]; then
+    #     ls -t "$LOG_DIR"/*.tar.gz | tail +6 | xargs rm
+        find "$LOG_DIR" -name "tedge-debug-*.tar.gz" | tail +"$MAX_FILES" | xargs rm
+    fi
+
+    # Only keep files newer than x days (protect against an empty log dir)
+    MAX_DAYS="${MAX_DAYS:-30}"
+    if [ "$MAX_DAYS" -gt 0 ] && [ -n "$LOG_DIR" ]; then
+        find "$LOG_DIR" -name "tedge-debug-*.tar.gz" -mtime "$MAX_DAYS" -exec rm -f {} \; ||:
+    fi
+}
+
+pre_log_collection() {
+    #
+    # Collect logs before the corrective action has been executed
+    #
+    mkdir -p "$LOGD" ||:
+
+    journalctl -u "tedge-mapper-$CLOUD" -n 100 > "$LOGD/tedge-mapper-$CLOUD.log" ||:
+    journalctl -u tedge-agent -n 100 > "$LOGD/tedge-agent.log" ||:
+
+    tedge config list > "$LOGD/tedge-config-list.txt"
+
+    if [ -f /etc/tedge/.tedge-mapper-c8y/entity_store.jsonl ]; then
+        cp /etc/tedge/.tedge-mapper-c8y/entity_store.jsonl "$LOGD/" ||:
+    fi
+
+    if [ -f /var/log/mosquitto/mosquitto.log ]; then
+        tail -n 100 /var/log/mosquitto/mosquitto.log > "$LOGD/mosquitto.log" ||:
+    fi
+
+    monit summary > "$LOGD/monit.summary.txt" ||:
+    monit status > "$LOGD/monit.status.txt" ||:
+}
+
+post_log_collection() {
+    #
+    # Collect logs after the corrective action has been executed
+    #
+    mkdir -p "$LOGD" ||:
+
+    if command -V timeout >/dev/null 2>&1; then
+        timeout 5 tedge mqtt sub '#' > "$LOGD/mqtt.txt" ||:
+    fi
+}
+
+publish_event() {
+    attempt=0
+    code=1
+    while [ "$attempt" -lt 5 ]; do
+        if MONIT_EVENT="Reconnected to cloud ($CLOUD)" MONIT_DESCRIPTION="A monit rule was able to reconnect to the cloud. Check the $LOG_DIR directory for files" /usr/bin/monit-tedge-message event "${CLOUD}_reconnected"; then
+            code=0
+            break
+        fi
+        attempt=$((attempt + 1))
+        sleep 5
+    done
+    if [ "$code" != 0 ]; then
+        log "Warning: Could not publish reconnected event"
+    fi
+    return "$code"
+}
+
+LOGD="$LOG_DIR/tmp"
+log "Logging files to $LOGD"
+
+if ! remove_old_files; then
+    log "Unexpected error whilst cleaning up old log files"
+fi
+
+# Collect logs
+if ! pre_log_collection; then
+    log "Warning: Unkown error whilst collecting pre debug information"
+fi
+
+# Perform corrective action to try to reestablish the cloud connection
+tedge reconnect "$CLOUD"
+
+# send event so it is easier to query the cloud to find devices where a problem occurred
+publish_event ||:
+
+# Collect logs after the connection has hopefully been repaired
+if ! post_log_collection; then
+    log "Warning: Unknown error whilst collecting post debug information"
+fi
+
+# Compress archive
+LOG_NAME="$(date +"tedge-debug-${CLOUD}_%Y%m%d_%H%M")"
+cd "$LOGD" && tar czf "$LOG_DIR/${LOG_NAME}.tar.gz" .
+
+# Also create a concatenated log file so it can be retrieved via the log_upload operation
+if command -V zcat >/dev/null 2>&1; then
+    zcat "$LOG_DIR/${LOG_NAME}.tar.gz" > "$LOG_DIR/${LOG_NAME}.log"
+fi
+
+rm -rf "$LOGD"

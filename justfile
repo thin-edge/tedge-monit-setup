@@ -1,5 +1,6 @@
 set positional-arguments
 set dotenv-load
+set export
 
 IMAGE := env_var_or_default("IMAGE", "debian-11")
 IMAGE_SRC := env_var_or_default("IMAGE_SRC", "debian-11")
