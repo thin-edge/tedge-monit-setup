@@ -38,7 +38,7 @@ contents:
       group: root
       owner: root
 
-  - src: ./src/bin/tedge-fix
+  - src: ./src/bin/monit-tedge-reconnect
     dst: /usr/bin/
     file_info:
       mode: 0755
