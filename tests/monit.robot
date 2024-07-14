@@ -21,7 +21,8 @@ Reconnect on cloud connection loss (by stopping mosquitto)
     Execute Command    systemctl is-active mosquitto
     Execute Command    systemctl is-active tedge-mapper-c8y
     Cumulocity.Device Should Exist    ${DEVICE_SN}
-    Cumulocity.Device Should Have Event/s    expected_text=.*Reestablished cloud connection: c8y.*    type=tedge-mapper-c8y_reconnected
+    Cumulocity.Device Should Have Event/s    expected_text=.*Reconnected to cloud .*c8y.*    type=c8y_reconnected
+    Assert File Count    /var/log/tedge-monit-setup/*.tar.gz    1
 
 
 *** Keywords ***
@@ -37,3 +38,7 @@ Decrease monit intervals
     Execute Command    cmd=sed -i 's/every 120 cycles/every 5 cycles/g' /etc/monit/conf.d/tedge-monitoring.conf
     Execute Command    cmd=sed -i 's/if status != 0 for 10 cycles/if status != 0 for 2 cycles/g' /etc/monit/conf.d/tedge-monitoring.conf
     Execute Command    systemctl restart monit
+
+Assert File Count
+    [Arguments]    ${path}    ${count}
+    DeviceLibrary.Execute Command    cmd=[ $(ls -l ${path} | wc -l | xargs) = ${count} ]
