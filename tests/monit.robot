@@ -26,6 +26,20 @@ Reconnect on cloud connection loss (by stopping mosquitto)
     Assert File Count    /var/log/tedge-monit-setup/*.log    1
 
 
+Use custom log path
+    Decrease monit intervals
+    Execute Command    cmd=echo "LOG_DIR=/opt/tedge-monit" | sudo tee /etc/tedge-monit-setup/env
+
+    # Simulate an error by stopping mosquitto
+    Execute Command    sudo systemctl stop mosquitto
+    Sleep    2s    reason=Wait for mosquitto service to be shutdown
+    Execute Command    tedge connect c8y --test    timeout=120
+    Cumulocity.Device Should Exist    ${DEVICE_SN}
+    Cumulocity.Device Should Have Event/s    expected_text=.*Reconnected to cloud .*c8y.*    type=c8y_reconnected
+    Assert File Count    /opt/tedge-monit/*.tar.gz    1
+    Assert File Count    /opt/tedge-monit/*.log    1
+
+
 *** Keywords ***
 
 Test Setup
