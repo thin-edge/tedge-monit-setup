@@ -62,7 +62,27 @@ The following linux package formats are provided on the releases page and also i
 
 The following features are supported by the plugin:
 
-* Configure monit and the related thin-edge.io mapper
+* Install and configure monit (using package dependencies)
+* Install default rules to monit
+    * Monitor cloud connections and perform reconnection if required (including collecting log files for debugging such disconnection events)
+    * General device alerts like low disk space, high ram usage, file descriptor exhaustion etc.
+
+## Settings
+
+The plugin supports the following options which are controlled by editing the following configuration file:
+
+**file: /etc/tedge-monit-setup/env**
+
+```sh
+# Where to write the log files to
+LOG_DIR=/var/log/tedge-monit-setup
+
+# Maximum number of days to keep log (tar.gz) files
+MAX_DAYS=30
+
+# Maximum number of log (tar.gz) files to keep
+MAX_FILES=10
+```
 
 ## Acknowledgements
 
