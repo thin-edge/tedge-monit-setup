@@ -74,12 +74,14 @@ remove_old_files() {
     if [ "$MAX_FILES" -gt 0 ]; then
     #     ls -t "$LOG_DIR"/*.tar.gz | tail +6 | xargs rm
         find "$LOG_DIR" -name "tedge-debug-*.tar.gz" | tail +"$MAX_FILES" | xargs rm
+        find "$LOG_DIR" -name "tedge-debug-*.log" | tail +"$MAX_FILES" | xargs rm
     fi
 
     # Only keep files newer than x days (protect against an empty log dir)
     MAX_DAYS="${MAX_DAYS:-30}"
     if [ "$MAX_DAYS" -gt 0 ] && [ -n "$LOG_DIR" ]; then
         find "$LOG_DIR" -name "tedge-debug-*.tar.gz" -mtime "$MAX_DAYS" -exec rm -f {} \; ||:
+        find "$LOG_DIR" -name "tedge-debug-*.log" -mtime "$MAX_DAYS" -exec rm -f {} \; ||:
     fi
 }
 
