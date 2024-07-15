@@ -16,12 +16,20 @@ apk:
   arch: noarch
 contents:
   - src: ./src/conf.d/*.conf
-    dst: /etc/monit/conf.d/
+    dst: /usr/share/tedge-monit-setup/
     type: config
     file_info:
       mode: 0644
       group: tedge
       owner: tedge
+
+  - src: /usr/share/tedge-monit-setup/tedge.conf
+    dst: /etc/monit/conf.d/tedge.conf
+    type: symlink
+
+  - src: /usr/share/tedge-monit-setup/tedge-monitoring.conf
+    dst: /etc/monit/conf.d/tedge-monitoring.conf
+    type: symlink
 
   - src: ./src/tedge-monit-setup/env
     dst: /etc/tedge-monit-setup/env
