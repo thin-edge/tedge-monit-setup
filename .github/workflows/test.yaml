@@ -41,6 +41,9 @@ jobs:
         job:
           - { image: debian-11 }
           - { image: debian-12 }
+          - { image: ubuntu-20.04 }
+          - { image: ubuntu-22.04 }
+          - { image: ubuntu-24.04 }
 
     steps:
       - name: Checkout
