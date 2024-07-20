@@ -27,10 +27,6 @@ contents:
     dst: /etc/monit/conf.d/tedge.conf
     type: symlink
 
-  - src: /usr/share/tedge-monit-setup/tedge-monitoring.conf
-    dst: /etc/monit/conf.d/tedge-monitoring.conf
-    type: symlink
-
   - src: ./src/tedge-monit-setup/env
     dst: /etc/tedge-monit-setup/env
     type: config|noreplace
