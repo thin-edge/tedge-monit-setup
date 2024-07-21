@@ -60,6 +60,15 @@ if [ -f "$MONITRC" ]; then
     fi
 fi
 
+# newer monit service definitions are sometimes too strict on the "hardening" of the service
+# which results in the "tedge reconnect c8y" command failing.
+if grep -q "CapabilityBoundingSet=" /usr/lib/systemd/system/monit.service; then
+    if [ ! -e /etc/systemd/system/monit.service ]; then
+        echo "Using custom monit.service definition with custom capabilities set"
+        ln -sf /usr/share/tedge-monit-setup/service/monit.service /etc/systemd/system/monit.service
+    fi
+fi
+
 do_initd() {
     if command -V chkconfig >/dev/null 2>&1; then
         chkconfig --add monit ||:

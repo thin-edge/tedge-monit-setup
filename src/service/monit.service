@@ -1,0 +1,36 @@
+[Unit]
+Description=Pro-active monitoring utility for unix systems
+After=network-online.target
+Documentation=man:monit(1) https://mmonit.com/wiki/Monit/HowTo
+
+[Service]
+Type=simple
+KillMode=process
+ExecStart=/usr/bin/monit -I
+ExecStop=/usr/bin/monit quit
+ExecReload=/usr/bin/monit reload
+Restart=on-abnormal
+StandardOutput=null
+
+# hardening options
+#  details: https://www.freedesktop.org/software/systemd/man/systemd.exec.html
+CapabilityBoundingSet=~CAP_SYS_ADMIN
+LockPersonality=true
+MemoryDenyWriteExecute=true
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectClock=true
+ProtectControlGroups=true
+ProtectHome=yes
+ProtectHostname=true
+ProtectKernelLogs=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+ProtectSystem=strict
+ReadWritePaths=/run/ /var/lib/monit/ /var/log/ /etc/tedge/ /opt/tedge-monit/
+RestrictRealtime=true
+RestrictSUIDSGID=true
+SystemCallArchitectures=native
+
+[Install]
+WantedBy=multi-user.target

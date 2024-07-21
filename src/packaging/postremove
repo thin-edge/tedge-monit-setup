@@ -16,6 +16,7 @@ do_initd() {
 remove_or_purge() {
     rm -f /etc/monit/conf.d/tedge-monitoring-extended.conf
     rm -f /usr/share/tedge-monit-setup/tedge-monitoring-legacy.conf
+    rm -f /etc/systemd/system/monit.service
 
     if command -V systemctl >/dev/null 2>&1; then
         do_systemd
