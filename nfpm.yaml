@@ -27,9 +27,15 @@ contents:
     dst: /etc/monit/conf.d/tedge.conf
     type: symlink
 
-  - src: /usr/share/tedge-monit-setup/tedge-monitoring.conf
-    dst: /etc/monit/conf.d/tedge-monitoring.conf
-    type: symlink
+  # Optional service definition which has compatible capability settings
+  # otherwise the reconnect command will fail
+  # See https://salsa.debian.org/debian/monit/-/blob/debian/main/debian/patches/040_hardening-monit.service.patch?ref_type=heads
+  - src: ./src/service/monit.service
+    dst: /usr/share/tedge-monit-setup/service/
+    file_info:
+      mode: 0644
+      group: root
+      owner: root
 
   - src: ./src/tedge-monit-setup/env
     dst: /etc/tedge-monit-setup/env

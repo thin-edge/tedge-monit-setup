@@ -16,12 +16,56 @@ do_systemd() {
     fi
 }
 
+MONITRC=/etc/monit/monitrc
+if [ -f /etc/monitrc ]; then
+    MONITRC=/etc/monitrc
+fi
+
 # In Yocto, monit looks at the /etc/monit.d/ directory
 # instead of /etc/monit/conf.d/, so let's add the other directory to as well (for normalization)
-if [ -f /etc/monitrc ]; then
-    if ! grep -q "include /etc/monit/conf.d/\*" /etc/monitrc; then
-        echo "Adding /etc/monit/conf.d/ to the monit config (/etc/monitrc)" >&2
-        echo 'include /etc/monit/conf.d/*.conf' >> /etc/monitrc
+if [ -f "$MONITRC" ]; then
+    if ! grep -q "include /etc/monit/conf.d/\*" "$MONITRC"; then
+        echo "Adding /etc/monit/conf.d/ to the monit config ($MONITRC)" >&2
+        echo 'include /etc/monit/conf.d/*.conf' >> "$MONITRC"
+    fi
+fi
+
+add_config_if_valid() {
+    #
+    # Only add a configuration file if it is accepted by monit
+    # It is verified by adding the config file, running "monit -t", and removing the config file if the test fails
+    #
+    CONF_FILE="$1"
+    if [ $# -gt 1 ]; then
+        name="$2"
+    else
+        name=$(basename "$CONF_FILE")
+    fi
+
+    if monit -c "$MONITRC" -t >/dev/null 2>&1; then
+        ln -sf "$CONF_FILE" "/etc/monit/conf.d/$name"
+        if ! monit -c "$MONITRC" -t; then
+            echo "Warning: Excluding $name as the monit version does not support the syntax used in it"
+            rm -f "/etc/monit/conf.d/$name"
+            return 1
+        fi
+    fi
+    return 0
+}
+
+# Add configuration
+if [ -f "$MONITRC" ]; then
+    if ! add_config_if_valid /usr/share/tedge-monit-setup/tedge-monitoring.conf "tedge-monitoring.conf"; then
+        add_config_if_valid /usr/share/tedge-monit-setup/tedge-monitoring-legacy.conf "tedge-monitoring.conf" ||:
+    fi
+fi
+
+# newer monit service definitions are sometimes too strict on the "hardening" of the service
+# which results in the "tedge reconnect c8y" command failing.
+if grep -q "CapabilityBoundingSet=" /usr/lib/systemd/system/monit.service; then
+    if [ ! -e /etc/systemd/system/monit.service ]; then
+        echo "Using custom monit.service definition with custom capabilities set"
+        ln -sf /usr/share/tedge-monit-setup/service/monit.service /etc/systemd/system/monit.service
     fi
 fi
 

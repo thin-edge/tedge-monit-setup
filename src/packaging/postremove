@@ -13,8 +13,30 @@ do_initd() {
     service monit stop ||:
 }
 
-if command -V systemctl >/dev/null 2>&1; then
-    do_systemd
-else
-    do_initd
-fi
+remove_or_purge() {
+    rm -f /etc/monit/conf.d/tedge-monitoring-extended.conf
+    rm -f /usr/share/tedge-monit-setup/tedge-monitoring-legacy.conf
+    rm -f /etc/systemd/system/monit.service
+
+    if command -V systemctl >/dev/null 2>&1; then
+        do_systemd
+    else
+        do_initd
+    fi
+}
+
+action="$1"
+case "$action" in
+  "0" | "remove")
+    remove_or_purge
+    ;;
+  "1" | "upgrade")
+    # Do nothing on upgrade
+    ;;
+  "purge")
+    remove_or_purge
+    ;;
+  *)
+    remove_or_purge
+    ;;
+esac
