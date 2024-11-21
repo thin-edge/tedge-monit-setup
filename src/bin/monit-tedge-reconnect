@@ -145,7 +145,7 @@ fi
 
 # Collect logs
 if ! pre_log_collection; then
-    log "Warning: Unkown error whilst collecting pre debug information"
+    log "Warning: Unknown error whilst collecting pre debug information"
 fi
 
 # Perform corrective action to try to reestablish the cloud connection
