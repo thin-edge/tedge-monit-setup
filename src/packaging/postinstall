@@ -29,6 +29,7 @@ if [ -f "$MONITRC" ]; then
     # default monitrc configuration where the line 'include /etc/monit/conf.d/*' causes the service not to start.
     # So delete the line as it will be replaced with a similar line afterwards
     sed -i 's| *include /etc/monit/conf.d/\*$||g' "$MONITRC"
+    sed -i 's| *include /etc/monit/conf.d/\*.conf$||g' "$MONITRC"
 
     if ! grep -q "include /etc/monit/conf.d/" "$MONITRC"; then
         echo "Adding /etc/monit/conf.d/ to the monit config ($MONITRC)" >&2
