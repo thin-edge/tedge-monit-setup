@@ -8,7 +8,7 @@ Test Setup    Test Setup
 *** Test Cases ***
 
 monit configuration is valid
-    Execute Command    monit -t
+    Execute Command    monit -c /etc/monit/monitrc -t
 
 Reconnect on cloud connection loss (by stopping mosquitto)
     Decrease monit intervals
@@ -48,11 +48,10 @@ Test Setup
 
 Decrease monit intervals
     [Documentation]    Change default cycles to reduce the test execution times
-    Transfer To Device    ${CURDIR}/data/monitrc    /etc/monit/monitrc
-    Execute Command    chown root:root /etc/monit/monitrc && chmod 700 /etc/monit/monitrc
+    Execute Command    cmd=sed -i 's/set daemon .*/set daemon 5/g' /etc/monit/monitrc
     Execute Command    cmd=sed -i 's/every 120 cycles/every 5 cycles/g' /etc/monit/conf.d/tedge-monitoring.conf
     Execute Command    cmd=sed -i 's/if status != 0 for 10 cycles/if status != 0 for 2 cycles/g' /etc/monit/conf.d/tedge-monitoring.conf
-    Execute Command    systemctl restart monit
+    Execute Command    cmd=systemctl restart monit
 
 Assert File Count
     [Arguments]    ${path}    ${count}

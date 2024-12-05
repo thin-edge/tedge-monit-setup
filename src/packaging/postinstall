@@ -24,15 +24,11 @@ fi
 # In Yocto, monit looks at the /etc/monit.d/ directory
 # instead of /etc/monit/conf.d/, so let's add the other directory to as well (for normalization)
 if [ -f "$MONITRC" ]; then
-
-    # Some debian packages (maybe a Raspberry Pi APT mirror, monit 5.33.0) includes a buggy
-    # default monitrc configuration where the line 'include /etc/monit/conf.d/*' causes the service not to start.
-    # So delete the line as it will be replaced with a similar line afterwards
-    sed -i 's|^include /etc/monit/conf.d/\*$||g' "$MONITRC"
+    sed -i 's| *include /etc/monit/conf.d/.*$||g' "$MONITRC"
 
     if ! grep -q "include /etc/monit/conf.d/" "$MONITRC"; then
         echo "Adding /etc/monit/conf.d/ to the monit config ($MONITRC)" >&2
-        echo 'include /etc/monit/conf.d/' >> "$MONITRC"
+        echo 'include /etc/monit/conf.d/*.conf' >> "$MONITRC"
     fi
 fi
 
@@ -48,13 +44,11 @@ add_config_if_valid() {
         name=$(basename "$CONF_FILE")
     fi
 
-    if monit -c "$MONITRC" -t >/dev/null 2>&1; then
-        ln -sf "$CONF_FILE" "/etc/monit/conf.d/$name"
-        if ! monit -c "$MONITRC" -t; then
-            echo "Warning: Excluding $name as the monit version does not support the syntax used in it"
-            rm -f "/etc/monit/conf.d/$name"
-            return 1
-        fi
+    ln -sf "$CONF_FILE" "/etc/monit/conf.d/$name"
+    if ! monit -c "$MONITRC" -t; then
+        echo "Warning: Excluding $name as the monit version does not support the syntax used in it"
+        rm -f "/etc/monit/conf.d/$name"
+        return 1
     fi
     return 0
 }
