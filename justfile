@@ -21,4 +21,4 @@ test *args='':
   ./.venv/bin/python3 -m robot.run --outputdir output {{args}} tests
 
 build-test:
-  docker build -t {{IMAGE}} -f ./test-images/{{IMAGE_SRC}}/Dockerfile .
+  docker build --load -t {{IMAGE}} -f ./test-images/{{IMAGE_SRC}}/Dockerfile .
