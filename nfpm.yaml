@@ -17,7 +17,6 @@ apk:
 contents:
   - src: ./src/conf.d/*.conf
     dst: /usr/share/tedge-monit-setup/
-    type: config
     file_info:
       mode: 0644
       group: tedge
