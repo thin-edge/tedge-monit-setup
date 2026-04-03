@@ -1,0 +1,228 @@
+#!/bin/sh
+set -eu
+
+usage() {
+    echo "Usage: $0 <command> [args...]"
+    echo "Commands:"
+    echo "  list                                                 List all config types supported by this plugin"
+    echo "  get <type>                                           Print the config for the specified type to stdout"
+    echo "  prepare <type> <new-config-path> --work-dir <dir>    Prepare for configuration update (create backup)"
+    echo "  set <type> <new-config-path> --work-dir <dir>        Update the config for the specified type and restart service"
+    echo "  verify <type> --work-dir <dir>                       Verify configuration was applied successfully"
+    echo "  rollback <type> --work-dir <dir>                     Rollback configuration to previous state"
+    exit 1
+}
+
+config_dirs() {
+    echo "/etc/monit/conf.d"
+    # echo "/etc/monit/conf-enabled"
+}
+
+list_types() {
+    # the main config
+    echo "monitrc"
+
+    # typical config directories which are also linked in the monitrc file
+    for dir in $(config_dirs); do
+        if [ -d "$dir" ]; then
+            ls -c1 "$dir"
+        fi
+    done
+}
+
+find_config_file() {
+    _config_type="$1"
+    _found_file=
+    # check if it is the main monitrc file, or a config file stored under one of the conf.d like directories
+    if [ "$_config_type" = monitrc ]; then
+        if [ -f /etc/monit/monitrc ]; then
+            _found_file=/etc/monit/monitrc
+        fi
+    else
+        for dir in $(config_dirs); do
+            if [ -f "${dir}/${_config_type}" ]; then
+                _found_file="${dir}/${_config_type}"
+                break
+            fi
+        done
+    fi
+    echo "$_found_file"
+}
+
+get_config() {
+    config_type="${1:-monitrc}"
+
+    found_file=$(find_config_file "$config_type")
+    if [ -z "$found_file" ]; then
+        echo "configuration type ($config_type) not found in one of these directories [$(config_dirs)]" >&2
+        exit 1
+    fi
+
+    cat "$found_file"
+}
+
+parse_work_dir() {
+    work_dir=""
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --work-dir)
+                if [ -z "${2:-}" ]; then
+                    echo "Error: --work-dir requires a value" >&2
+                    exit 1
+                fi
+                work_dir="$2"
+                shift 2
+                ;;
+            *)
+                echo "Error: Unknown argument '$1'" >&2
+                exit 1
+                ;;
+        esac
+    done
+
+    if [ -z "$work_dir" ]; then
+        echo "Error: --work-dir is required" >&2
+        exit 1
+    fi
+
+    echo "$work_dir"
+}
+
+prepare() {
+    config_type="$1"
+    new_config_path="$2"
+    shift 2
+
+    if [ ! -f "$new_config_path" ]; then
+        echo "Error: New config file not found: $new_config_path" >&2
+        exit 1
+    fi
+
+    # Parse --work-dir argument
+    work_dir=$(parse_work_dir "$@")
+
+    backup_path="${work_dir}/${config_type}.backup"
+
+    existing_config_file=$(find_config_file "$config_type")
+    if [ -f "$existing_config_file" ]; then
+        # Backup existing configuration to work directory
+        cp "$existing_config_file" "$backup_path"
+    fi
+}
+
+set_config() {
+    config_type="$1"
+    config_file="$2"
+    shift 2
+
+    case "$config_type" in
+        monitrc)
+            mv "$config_file" /etc/monit/monitrc
+            chown root:root /etc/monit/monitrc
+            ;;
+        *)
+            mv "$config_file" "/etc/monit/conf.d/${config_type}"
+            chown root:root "/etc/monit/conf.d/${config_type}"
+            ;;
+    esac
+
+    # Restart the service
+    if ! monit -v reload; then
+        echo "Error: Failed to reload monit daemon. check the output for more details" >&2
+        exit 1
+    fi
+}
+
+verify() {
+    config_type="$1"
+    shift
+
+    # validate the syntax
+    monit -c /etc/monit/monitrc -t
+
+    # check that the process can report its status
+    monit status
+}
+
+rollback() {
+    config_type="$1"
+    shift
+
+    # Parse --work-dir argument
+    work_dir=$(parse_work_dir "$@")
+
+    config_file=$(find_config_file "$config_type")
+    backup_path="${work_dir}/${config_type}.backup"
+
+    # Restore backup configuration
+    if [ -f "$backup_path" ]; then
+        echo "Restoring file from backup ($backup_path). file=$config_file" >&2
+        mv "$backup_path" "$config_file"
+    else
+        # no backup found, so just remove the file as it could be the corrupt file
+        echo "Removing potentially corrupted file (as there is no backup). file=$config_file" >&2
+        rm -f "$config_file"
+    fi
+
+    # check if the rollback was successful or not
+    if ! monit -v reload; then
+        echo "Error: Failed to reload daemon after rollback. You will need to manually inspect the configuration" >&2
+        exit 2
+    fi
+}
+
+main() {
+    if [ $# -lt 1 ]; then
+        usage
+    fi
+
+    command="$1"
+    shift
+
+    case "$command" in
+        list)
+            list_types
+            ;;
+        get)
+            if [ $# -lt 1 ]; then
+                echo "Error: 'get' command requires a <type> argument" >&2
+                exit 1
+            fi
+            get_config "$@"
+            ;;
+        prepare)
+            if [ $# -lt 1 ]; then
+                echo "Error: 'prepare' command requires <type> and --work-dir arguments" >&2
+                exit 1
+            fi
+            prepare "$@"
+            ;;
+        set)
+            if [ $# -lt 2 ]; then
+                echo "Error: 'set' command requires <type> and <new-config-path> arguments" >&2
+                exit 1
+            fi
+            set_config "$@"
+            ;;
+        verify)
+            if [ $# -lt 1 ]; then
+                echo "Error: 'verify' command requires <type> and --work-dir arguments" >&2
+                exit 1
+            fi
+            verify "$@"
+            ;;
+        rollback)
+            if [ $# -lt 1 ]; then
+                echo "Error: 'rollback' command requires <type> and --work-dir arguments" >&2
+                exit 1
+            fi
+            rollback "$@"
+            ;;
+        *)
+            echo "Error: Unknown command '$command'" >&2
+            usage
+            ;;
+    esac
+}
+
+main "$@"
