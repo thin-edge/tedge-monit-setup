@@ -31,7 +31,7 @@ COPY test-images/debian-11/bootstrap.sh /usr/bin/
 WORKDIR /build
 
 COPY dist/tedge-monit-setup_*.deb .
-RUN apt-get install -y --no-install-recommends ./tedge-monit-setup_*.deb
+RUN apt-get install -y --no-install-recommends --allow-downgrades ./tedge-monit-setup_*.deb
 
 # Reference: https://developers.redhat.com/blog/2019/04/24/how-to-run-systemd-in-a-container#enter_podman
 # STOPSIGNAL SIGRTMIN+3 (=37)
