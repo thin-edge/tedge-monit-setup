@@ -4,6 +4,7 @@ set export
 
 IMAGE := env_var_or_default("IMAGE", "debian-11")
 IMAGE_SRC := env_var_or_default("IMAGE_SRC", "debian-11")
+TEDGE_CHANNEL := "main"
 
 build *ARGS:
     ./ci/build.sh {{ARGS}}
@@ -21,4 +22,4 @@ test *args='':
   ./.venv/bin/python3 -m robot.run --outputdir output {{args}} tests
 
 build-test:
-  docker build --load -t {{IMAGE}} -f ./test-images/{{IMAGE_SRC}}/Dockerfile .
+  docker build --load -t {{IMAGE}} --build-arg "{{TEDGE_CHANNEL}}" -f ./test-images/{{IMAGE_SRC}}/Dockerfile .
