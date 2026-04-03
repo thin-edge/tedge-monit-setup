@@ -1,4 +1,5 @@
 FROM ubuntu:22.04
+ARG TEDGE_CHANNEL=release
 
 # Install
 RUN apt-get -y update \
@@ -24,7 +25,7 @@ RUN rm -f /lib/systemd/system/multi-user.target.wants/* \
     # Remove policy-rc.d file which prevents services from starting
     && rm -f /usr/sbin/policy-rc.d
 
-RUN wget -O - https://thin-edge.io/install.sh | sh -s
+RUN wget -O - https://thin-edge.io/install.sh | sh -s -- --channel "$TEDGE_CHANNEL"
 
 COPY test-images/debian-11/bootstrap.sh /usr/bin/
 
