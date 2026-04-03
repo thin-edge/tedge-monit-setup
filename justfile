@@ -4,7 +4,7 @@ set export
 
 IMAGE := env_var_or_default("IMAGE", "debian-11")
 IMAGE_SRC := env_var_or_default("IMAGE_SRC", "debian-11")
-TEDGE_CHANNEL := "release"
+TEDGE_CHANNEL := "main"
 
 build *ARGS:
     ./ci/build.sh {{ARGS}}
