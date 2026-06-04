@@ -9,4 +9,4 @@ RUN tedge config unset c8y.proxy.client.host \
     && tedge config unset http.client.host
 
 COPY dist/tedge-monit-setup*.deb /tmp/
-RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends /tmp/*.deb
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends --allow-downgrades /tmp/*.deb
