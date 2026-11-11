@@ -69,7 +69,6 @@ jobs:
       fail-fast: false
       matrix:
         job:
-          - { image: debian-11 }
           - { image: debian-12 }
           - { image: ubuntu-20.04 }
           - { image: ubuntu-22.04 }

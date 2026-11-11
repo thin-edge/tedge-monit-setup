@@ -26,7 +26,7 @@ RUN rm -f /lib/systemd/system/multi-user.target.wants/* \
 
 RUN wget -O - https://thin-edge.io/install.sh | sh -s
 
-COPY test-images/debian-11/bootstrap.sh /usr/bin/
+COPY test-images/common/bootstrap.sh /usr/bin/
 
 WORKDIR /build
 
